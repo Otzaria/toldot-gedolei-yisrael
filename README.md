@@ -91,8 +91,10 @@ publishes a release with:
   license, release tag)
 - `biographies-app.json.gz` - a compact gzipped bundle for applications
   such as Otzaria: claim values only (competing values appended as
-  "(או: ...)"), `ref` links between entries, and per-entry source links;
-  no review notes (format in `scripts/app_bundle.py`)
+  "(או: ...)"), `ref` links between entries, per-entry source links, and
+  for works linked in `config/work_books.json` the exact titles of their
+  books in the Otzaria library; no review notes (format in
+  `scripts/app_bundle.py`)
 - `biographies-files.zip` - `entries/<id>.json`, `meta.json` (everything in
   the bundle but the entries, plus the entry ids in order), the schema,
   `LICENSE`, `NOTICE`, `CREDITS.md`
