@@ -10,6 +10,8 @@ application does not show. This keeps what a card shows:
 - teachers, students and family keep `ref`, the id of the linked entry;
 - `sources` lists, per entry, the credit key, a title and a link to the
   original page, so each card can credit its sources;
+- a work linked in config/work_books.json gets `books`, the exact titles of
+  its book (or volumes) in the Otzaria library catalog;
 - empty fields are left out; review notes and raw snapshot paths are dropped.
 
 Format `biographies-app`, version 1.
@@ -17,7 +19,7 @@ Top level: format, version, built, release, author, license, eras, credits,
 entries. Entry: id, era, name, and optionally known_as, honorific,
 generation, region, born / died ({hebrew, gregorian, place}), buried, roles,
 teachers / students ([{name, ref?}]), family ([{relation, name, ref?}]),
-works ([{title, description?}]), mentioned_in, summary, remember, sources
+works ([{title, description?, books?}]), mentioned_in, summary, remember, sources
 ([{credit, title?, url}]).
 """
 
@@ -29,6 +31,7 @@ from build_site import ROOT, build_bundle
 
 APP_FORMAT = "biographies-app"
 APP_VERSION = 1
+WORK_BOOKS = json.loads((ROOT / "config" / "work_books.json").read_text(encoding="utf-8"))["works"]
 
 
 def text(claim):
@@ -67,6 +70,13 @@ def sources(entry):
     return out
 
 
+def work(value, books):
+    out = {k: v for k, v in value.items() if v}
+    if value["title"] in books:
+        out["books"] = books[value["title"]]
+    return out
+
+
 def compact(entry):
     f = entry["fields"]
     out = {
@@ -84,7 +94,7 @@ def compact(entry):
         "teachers": [person(c) for c in f["teachers"]],
         "students": [person(c) for c in f["students"]],
         "family": [person(c) for c in f["family"]],
-        "works": [{k: v for k, v in c["value"].items() if v} for c in f["works"]],
+        "works": [work(c["value"], WORK_BOOKS.get(entry["id"], {})) for c in f["works"]],
         "mentioned_in": text(f["mentioned_in"]),
         "summary": text(f["summary"]),
         "remember": text(f["remember"]),

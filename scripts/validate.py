@@ -10,6 +10,8 @@ Checks
 - provenance: every claim's providers are registered in `sources`; every
   registered source is cited; raw snapshot files exist; credit keys exist;
   Seder HaDorot row numbers exist
+- config/work_books.json: every linked work is a work of an existing entry,
+  with a non-empty list of distinct book titles
 - style: forbidden punctuation, academic phrasing, length limits
 Exit code 1 if any entry has errors.
 """
@@ -179,6 +181,23 @@ def validate(path):
     return errors, warnings
 
 
+def validate_work_books():
+    errors = []
+    works = json.loads((ROOT / "config" / "work_books.json").read_text(encoding="utf-8"))["works"]
+    for entry_id, linked in works.items():
+        path = ENTRIES / f"{entry_id}.json"
+        if not path.exists():
+            errors.append(f"{entry_id}: no such entry")
+            continue
+        titles = {c["value"]["title"] for c in json.loads(path.read_text(encoding="utf-8"))["fields"]["works"]}
+        for title, books in linked.items():
+            if title not in titles:
+                errors.append(f"{entry_id}: no work titled {title!r}")
+            if not books or len(set(books)) != len(books) or not all(isinstance(b, str) and b.strip() == b and b for b in books):
+                errors.append(f"{entry_id}: {title!r} needs distinct, non-empty book titles")
+    return errors
+
+
 def main():
     paths = [ENTRIES / f"{a}.json" for a in sys.argv[1:]] or sorted(ENTRIES.glob("*.json"))
     bad = 0
@@ -191,6 +210,10 @@ def main():
             for w in warnings:
                 print(f"  warn  {w}")
         bad += bool(errors)
+    link_errors = validate_work_books()
+    for e in link_errors:
+        print(f"config/work_books.json: ERROR {e}")
+    bad += bool(link_errors)
     missing = sorted(set(INDEX) - {p.stem for p in ENTRIES.glob("*.json")})
     print(f"\n{len(paths)} checked, {bad} with errors, {len(missing)} indexed but not written")
     sys.exit(1 if bad else 0)
